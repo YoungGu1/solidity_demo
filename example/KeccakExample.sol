@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
+/**
+    abi.encode   转换成16进制32位，会保存文本的信息，所以占用字节比较长
+    abi.encodePacked  直接转换转换成16进制  
+    keccak256    把字节转换成32位字节的hash值 唯一
+    
+**/
 contract KeccakExample  {
 
+    //转换成字节  
     function encodeString(string memory _str) public pure returns (bytes memory){
         return abi.encode(_str);
     }
