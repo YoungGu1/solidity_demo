@@ -19,5 +19,9 @@ contract KeccakExample  {
         return keccak256(abi.encodePacked(_str));
     }
 
+    function hashWithParams(string memory _a,string memory _b) public pure returns (bytes32){
+        return keccak256(abi.encodePacked(_a,_b));
+    }
+
 
 }
