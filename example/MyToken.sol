@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 
 // 1、在链端部署该智能合约
-// 2、写一个前端页面调用链端的合约
+// 2、写一个前端页面调用链端的合约1
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
