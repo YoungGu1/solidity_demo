@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.13;
 
 contract SlotStringExample {
     
     //0x48656c6c6f48656c6c6f48656c6c6f48656c6c6f48656c6c6f48656c6c6f003c
     //0x48656c6c6f48656c6c6f48656c6c6f48656c6c6f48656c6c6f48656c6c6f303e
     //0x0000000000000000000000000000000000000000000000000000000000000043
-    string private hello = "HelloHelloHelloHelloHelloHello012"; //0x00 slot
+    /*
+        如果大于32位，那么直接取插槽位得到的就是字符串长度
+        calculateBaseSlot计算后,就得到前面32位所在插槽的数据
+        calculateBaseSlot计算后+1,就得到后面几位所在插槽的数据
+    */
+    string private hello = "HelloHelloHelloHelloHelloHello01201231231312"; //0x00 slot
     
     //获取小于或等于32个字节插槽的数据
     function getBytes32BySlot(uint256 slot) public view returns (bytes32) {
@@ -41,7 +46,7 @@ contract SlotStringExample {
     }
 
      //计算插槽 
-    function calculateBaseSlot(uint256 slot) internal pure returns (uint256) {
+    function calculateBaseSlot(uint256 slot) public pure returns (uint256) {
         //0x0000000000000000000000000000000000000000000000000000000000000000;
         bytes32 paddedSlot = bytes32(slot);
         bytes32 baseSlot = keccak256(abi.encodePacked(paddedSlot));

@@ -10,7 +10,7 @@ pragma solidity ^0.8.0;
 contract KeccakExample  {
 
     //转换成字节  
-    function encodeString(string memory _str) public pure returns (bytes memory){
+    function encodeStringy(string memory _str) public pure returns (bytes memory){
         return abi.encode(_str);
     }
 
