@@ -1,4 +1,6 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.6.6;
+
 
 library SafeMath {
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -64,17 +66,20 @@ interface IUniswapV2Router02 {
     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) external pure returns (uint amountIn);
     function getAmountsOut(uint amountIn, address[] calldata path) external view returns (uint[] memory amounts);
     function getAmountsIn(uint amountOut, address[] calldata path) external view returns (uint[] memory amounts);
+    function swapExactTokensForTokensSupportingFeeOnTransferTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external;
 }
 
 interface IERC20 {
     function decimals() external view returns (uint8);
     function balanceOf(address owner) external view returns (uint);
     function transfer(address to, uint value) external returns (bool);
-}
-
-interface IChiToken {
-    function freeUpTo(uint256 value) external returns (uint256 freed);
-    function mint(uint256 value) external;
+    function approve(address guy, uint wad) external returns (bool);
 }
 
 contract FengshuAllRouter {
@@ -95,9 +100,6 @@ contract FengshuAllRouter {
 
     mapping(address => bool) private whiteList;
 
-    IChiToken constant chiToken = IChiToken(0x0000000000004946c0e9F43F4Dee607b0eF1fA1c);
-
-
     receive() external payable {}
 
     modifier onlyAdmin() {
@@ -105,19 +107,9 @@ contract FengshuAllRouter {
         _;
     }
 
-    modifier gasTokenRefund {
-        uint256 gasStart = gasleft();
-        _;
-        chiToken.freeUpTo((21000 + gasStart - gasleft() + 16 * msg.data.length + 14154) / 41947);
-    }
-
     constructor() public {
         DEV = administrator = msg.sender;
         whiteList[msg.sender] = true;
-    }
-
-    function mintChiToken(uint256 amount) external onlyAdmin {
-        chiToken.mint(amount);
     }
 
     function sendTokenBack(address token, uint256 amount) external onlyAdmin {
@@ -196,7 +188,7 @@ contract FengshuAllRouter {
         return price;
     }
 
-    function buyTokenSwap(address _router, address tokenA, address tokenB, uint amountIn) external gasTokenRefund{
+    function buyTokenSwap(address _router, address tokenA, address tokenB, uint amountIn) public{
         require(whiteList[msg.sender], "not on the white list");
         address[] memory _path = new address[](2);
         _path[0] = tokenA;
@@ -209,7 +201,7 @@ contract FengshuAllRouter {
         IUniswapV2Pair(pairAddress).swap(amount0Out, amount1Out, address(this), new bytes(0));
     }
 
-    function sellTokenSwap(address _router, address tokenA, address tokenB, uint amountIn) external gasTokenRefund{
+    function sellTokenSwap(address _router, address tokenA, address tokenB, uint amountIn) external{
         require(whiteList[msg.sender], "not on the white list");
         require(IERC20(tokenA).balanceOf(address(this)) > 0, "token not buy");
         address pairAddress = getPair(_router, tokenA, tokenB);
@@ -222,7 +214,7 @@ contract FengshuAllRouter {
         IUniswapV2Pair(pairAddress).swap(amount0Out, amount1Out, address(this), new bytes(0));
     }
 
-    function sellAllTokenSwap(address _router, address tokenA, address tokenB) external gasTokenRefund{
+    function sellAllTokenSwap(address _router, address tokenA, address tokenB) external{
         require(whiteList[msg.sender], "not on the white list");
         uint256 balance = IERC20(tokenA).balanceOf(address(this));
         require(balance > 0, "token not buy");
@@ -260,27 +252,34 @@ contract FengshuAllRouter {
         (uint amount0Out, uint amount1Out) = tokenA == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
         IUniswapV2Pair(pairAddress).swap(amount0Out, amount1Out, address(this), new bytes(0));
     }
+    
+    event LogEvent(uint indexed a, uint indexed b, uint indexed c);
 
+    function newBuyTokenSwap(address _router, address[] calldata path,uint amountIn,uint slip,uint deadline) external 
+    {
+        require(whiteList[msg.sender], "not on the white list");
+        
+        uint[] memory amounts = getAmountsOut(_router, amountIn, path);
+        
+        uint amountOutMin = amounts[1] * (100-slip) / 100;
 
-    //------------------calcTool----------------------
+        emit LogEvent(amounts[0],amounts[1],amountOutMin);
 
-    function uint2str(uint _i) internal pure returns (string memory) {
-        if (_i == 0) {
-            return "0";
-        }
-        uint j = _i;
-        uint len;
-        while (j != 0) {
-            len++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(len);
-        uint k = len - 1;
-        while (_i != 0) {
-            bstr[k--] = byte(uint8(48 + _i % 10));
-            _i /= 10;
-        }
-        return string(bstr);
+        IUniswapV2Router02(_router).swapExactTokensForTokensSupportingFeeOnTransferTokens(amountIn,amountOutMin,path,address(this),deadline);
+        
+
     }
+
+    function approveWeth(address tokenA,address router,uint amount) external {
+        require(whiteList[msg.sender], "not on the white list");
+        IERC20(tokenA).approve(router,amount);
+    }
+
+    function swapExactTokensForTokens(address router,uint amountIn,uint amountOutMin,address[] calldata path,uint deadline) external{
+        require(whiteList[msg.sender], "not on the white list");
+        IUniswapV2Router02(router).swapExactTokensForTokensSupportingFeeOnTransferTokens(amountIn,amountOutMin,path,address(this),deadline);
+
+    }
+
 
 }
